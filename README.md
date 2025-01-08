@@ -6,6 +6,24 @@
 
 By default, Goose registers all migrations globally, which can lead to version conflicts when using multiple migration directories. This form adds support to specify ``scope``, letting you separate migrations by scope. That way, even if 2 migrations share the same version number, they remain independent if they belong to different scopes.
 
+In your ``go.mod`` file, add this line & run ``go mod tidy``:
+
+```
+replace github.com/pressly/goose/v3 => github.com/ashwek/goose/v3 v3.24.1
+```
+
+**Usage:**
+
+```go
+// without scope
+goose.AddMigrationContext(Up, Down)
+goose.Up(db, "./migration/dir-1")
+
+// with scope
+goose.AddMigrationContext(Up, Down, goose.WithScope("scope-2"))
+goose.Up(db, "./migration/dir-2", goose.WithOptionScope("scope-2"))
+```
+
 ----
 
 <img align="right" width="125" src="assets/goose_logo.png">
