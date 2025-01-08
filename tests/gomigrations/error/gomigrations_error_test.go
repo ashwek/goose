@@ -23,7 +23,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	require.EqualValues(t, 0, current)
 	// Collect migrations.
 	dir := "testdata"
-	migrations, err := goose.CollectMigrations(dir, 0, goose.MaxVersion)
+	migrations, err := goose.CollectMigrations("", dir, 0, goose.MaxVersion)
 	require.NoError(t, err)
 	require.Len(t, migrations, 4)
 

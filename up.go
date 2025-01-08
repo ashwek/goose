@@ -12,12 +12,18 @@ type options struct {
 	allowMissing bool
 	applyUpByOne bool
 	noVersioning bool
+
+	scope string
 }
 
 type OptionsFunc func(o *options)
 
 func WithAllowMissing() OptionsFunc {
 	return func(o *options) { o.allowMissing = true }
+}
+
+func WithOptionScope(scope string) OptionsFunc {
+	return func(o *options) { o.scope = scope }
 }
 
 func WithNoVersioning() OptionsFunc {
@@ -43,7 +49,7 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 	for _, f := range opts {
 		f(option)
 	}
-	foundMigrations, err := CollectMigrations(dir, minVersion, version)
+	foundMigrations, err := CollectMigrations(option.scope, dir, minVersion, version)
 	if err != nil {
 		return err
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 func TestAddFunctions(t *testing.T) {
-	goMigrations, err := goose.CollectMigrations("testdata", 0, math.MaxInt64)
+	goMigrations, err := goose.CollectMigrations("", "testdata", 0, math.MaxInt64)
 	require.NoError(t, err)
 	require.Len(t, goMigrations, 4)
 

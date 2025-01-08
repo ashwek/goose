@@ -888,7 +888,7 @@ func TestGoOnly(t *testing.T) {
 				&goose.GoFunc{RunTx: newTxFn("DROP TABLE users")},
 			),
 		}
-		err := goose.SetGlobalMigrations(register...)
+		err := goose.SetGlobalMigrations("", register...)
 		require.NoError(t, err)
 		t.Cleanup(goose.ResetGlobalMigrations)
 
@@ -944,7 +944,7 @@ func TestGoOnly(t *testing.T) {
 				},
 			),
 		}
-		err := goose.SetGlobalMigrations(register...)
+		err := goose.SetGlobalMigrations("", register...)
 		require.NoError(t, err)
 		t.Cleanup(goose.ResetGlobalMigrations)
 

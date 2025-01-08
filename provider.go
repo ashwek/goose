@@ -99,7 +99,7 @@ func newProvider(
 	store database.Store,
 	fsys fs.FS,
 	cfg config,
-	global map[int64]*Migration,
+	global map[string]map[int64]*Migration,
 ) (*Provider, error) {
 	// Collect migrations from the filesystem and merge with registered migrations.
 	//
@@ -122,11 +122,13 @@ func newProvider(
 		// TODO(mf): let's add a warn-level log here to inform users if len(global) > 0. Would like
 		// to add this once we're on go1.21 and leverage the new slog package.
 	} else {
-		for version, m := range global {
-			if _, ok := versionToGoMigration[version]; ok {
-				return nil, fmt.Errorf("global go migration conflicts with provider-registered go migration with version %d", version)
+		if versionMap, ok := global[""]; ok {
+			for version, m := range versionMap {
+				if _, ok := versionToGoMigration[version]; ok {
+					return nil, fmt.Errorf("global go migration conflicts with provider-registered go migration with version %d", version)
+				}
+				versionToGoMigration[version] = m
 			}
-			versionToGoMigration[version] = m
 		}
 	}
 	// At this point we have all registered unique Go migrations (if any). We need to merge them

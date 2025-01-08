@@ -70,7 +70,7 @@ func TestCollectMigrations(t *testing.T) {
 		tmp := t.TempDir()
 		err := os.MkdirAll(filepath.Join(tmp, "migrations-test"), 0755)
 		require.NoError(t, err)
-		_, err = collectMigrationsFS(os.DirFS(tmp), "migrations-test", 0, math.MaxInt64, nil)
+		_, err = collectMigrationsFS("", os.DirFS(tmp), "migrations-test", 0, math.MaxInt64, nil)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "no migration files found")
 	})
@@ -80,7 +80,7 @@ func TestCollectMigrations(t *testing.T) {
 		file3, file4 := "19081_a.go", "19082_b.go"
 		AddNamedMigrationContext(file1, nil, nil)
 		AddNamedMigrationContext(file2, nil, nil)
-		require.Len(t, registeredGoMigrations, 2)
+		require.Len(t, registeredGoMigrations[""], 2)
 		tmp := t.TempDir()
 		dir := filepath.Join(tmp, "migrations", "dir1")
 		err := os.MkdirAll(dir, 0755)
@@ -93,7 +93,7 @@ func TestCollectMigrations(t *testing.T) {
 		files, err := fs.ReadDir(fsys, "migrations/dir1")
 		require.NoError(t, err)
 		require.Len(t, files, 4)
-		all, err := collectMigrationsFS(fsys, "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
+		all, err := collectMigrationsFS("", fsys, "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
 		require.NoError(t, err)
 		require.Len(t, all, 4)
 		require.EqualValues(t, 9081, all[0].Version)
@@ -107,7 +107,7 @@ func TestCollectMigrations(t *testing.T) {
 		AddNamedMigrationContext(file1, nil, nil)
 		AddNamedMigrationContext(file2, nil, nil)
 		AddNamedMigrationContext(file3, nil, nil)
-		require.Len(t, registeredGoMigrations, 3)
+		require.Len(t, registeredGoMigrations[""], 3)
 		tmp := t.TempDir()
 		dir1 := filepath.Join(tmp, "migrations", "dir1")
 		dir2 := filepath.Join(tmp, "migrations", "dir2")
@@ -122,7 +122,7 @@ func TestCollectMigrations(t *testing.T) {
 		// Validate if dirpath 1 is specified we get the two Go migrations in migrations/dir1 folder
 		// even though 3 Go migrations have been registered.
 		{
-			all, err := collectMigrationsFS(fsys, "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
+			all, err := collectMigrationsFS("", fsys, "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
 			require.NoError(t, err)
 			require.Len(t, all, 2)
 			require.EqualValues(t, 1, all[0].Version)
@@ -131,7 +131,7 @@ func TestCollectMigrations(t *testing.T) {
 		// Validate if dirpath 2 is specified we only get the one Go migration in migrations/dir2 folder
 		// even though 3 Go migrations have been registered.
 		{
-			all, err := collectMigrationsFS(fsys, "migrations/dir2", 0, math.MaxInt64, registeredGoMigrations)
+			all, err := collectMigrationsFS("", fsys, "migrations/dir2", 0, math.MaxInt64, registeredGoMigrations)
 			require.NoError(t, err)
 			require.Len(t, all, 1)
 			require.EqualValues(t, 1111, all[0].Version)
@@ -141,11 +141,11 @@ func TestCollectMigrations(t *testing.T) {
 		t.Cleanup(func() { clearMap(registeredGoMigrations) })
 		AddNamedMigrationContext("00101_a.go", nil, nil)
 		AddNamedMigrationContext("00102_b.go", nil, nil)
-		require.Len(t, registeredGoMigrations, 2)
+		require.Len(t, registeredGoMigrations[""], 2)
 		tmp := t.TempDir()
 		err := os.MkdirAll(filepath.Join(tmp, "migrations"), 0755)
 		require.NoError(t, err)
-		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations", 0, math.MaxInt64, registeredGoMigrations)
+		all, err := collectMigrationsFS("", os.DirFS(tmp), "migrations", 0, math.MaxInt64, registeredGoMigrations)
 		require.NoError(t, err)
 		require.Len(t, all, 2)
 		require.EqualValues(t, 101, all[0].Version)
@@ -158,7 +158,7 @@ func TestCollectMigrations(t *testing.T) {
 		// valid looking file2 Go migration
 		AddNamedMigrationContext(file1, nil, nil)
 		AddNamedMigrationContext(file3, nil, nil)
-		require.Len(t, registeredGoMigrations, 2)
+		require.Len(t, registeredGoMigrations[""], 2)
 		tmp := t.TempDir()
 		dir1 := filepath.Join(tmp, "migrations", "dir1")
 		err := os.MkdirAll(dir1, 0755)
@@ -168,7 +168,7 @@ func TestCollectMigrations(t *testing.T) {
 		createEmptyFile(t, dir1, file1)
 		createEmptyFile(t, dir1, file2)
 		createEmptyFile(t, dir1, file3)
-		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
+		all, err := collectMigrationsFS("", os.DirFS(tmp), "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
 		require.NoError(t, err)
 		require.Len(t, all, 3)
 		require.EqualValues(t, 1, all[0].Version)
@@ -193,7 +193,7 @@ func TestCollectMigrations(t *testing.T) {
 		createEmptyFile(t, dir1, file2)
 		createEmptyFile(t, dir1, file3)
 		createEmptyFile(t, dir1, file4)
-		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
+		all, err := collectMigrationsFS("", os.DirFS(tmp), "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
 		require.NoError(t, err)
 		require.Len(t, all, 2)
 		require.EqualValues(t, 1, all[0].Version)
@@ -206,7 +206,7 @@ func TestCollectMigrations(t *testing.T) {
 		file1, file2, file3 := "01001_a.go", "01002_b.sql", "01003_c.go"
 		AddNamedMigrationContext(file1, nil, nil)
 		AddNamedMigrationContext(file3, nil, nil)
-		require.Len(t, registeredGoMigrations, 2)
+		require.Len(t, registeredGoMigrations[""], 2)
 		tmp := t.TempDir()
 		dir1 := filepath.Join(tmp, "migrations", "dir1")
 		err := os.MkdirAll(dir1, 0755)
@@ -214,7 +214,7 @@ func TestCollectMigrations(t *testing.T) {
 		createEmptyFile(t, dir1, file1)
 		createEmptyFile(t, dir1, file2)
 		createEmptyFile(t, dir1, file3)
-		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations/dir1", 1001, 1003, registeredGoMigrations)
+		all, err := collectMigrationsFS("", os.DirFS(tmp), "migrations/dir1", 1001, 1003, registeredGoMigrations)
 		require.NoError(t, err)
 		require.Len(t, all, 2)
 		require.EqualValues(t, 1002, all[0].Version)
@@ -260,7 +260,7 @@ func createEmptyFile(t *testing.T, dir, name string) {
 	defer f.Close()
 }
 
-func clearMap(m map[int64]*Migration) {
+func clearMap(m map[string]map[int64]*Migration) {
 	for k := range m {
 		delete(m, k)
 	}

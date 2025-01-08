@@ -56,32 +56,32 @@ func TestTransactionMode(t *testing.T) {
 	runDB := func(context.Context, *sql.DB) error { return nil }
 	runTx := func(context.Context, *sql.Tx) error { return nil }
 
-	err := SetGlobalMigrations(
+	err := SetGlobalMigrations("",
 		NewGoMigration(1, &GoFunc{RunTx: runTx, RunDB: runDB}, nil), // cannot specify both
 	)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "up function: must specify exactly one of RunTx or RunDB")
-	err = SetGlobalMigrations(
+	err = SetGlobalMigrations("",
 		NewGoMigration(1, nil, &GoFunc{RunTx: runTx, RunDB: runDB}), // cannot specify both
 	)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "down function: must specify exactly one of RunTx or RunDB")
-	err = SetGlobalMigrations(
+	err = SetGlobalMigrations("",
 		NewGoMigration(1, &GoFunc{RunTx: runTx, Mode: TransactionDisabled}, nil), // invalid explicit mode tx
 	)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "up function: transaction mode must be enabled or unspecified when RunTx is set")
-	err = SetGlobalMigrations(
+	err = SetGlobalMigrations("",
 		NewGoMigration(1, nil, &GoFunc{RunTx: runTx, Mode: TransactionDisabled}), // invalid explicit mode tx
 	)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "down function: transaction mode must be enabled or unspecified when RunTx is set")
-	err = SetGlobalMigrations(
+	err = SetGlobalMigrations("",
 		NewGoMigration(1, &GoFunc{RunDB: runDB, Mode: TransactionEnabled}, nil), // invalid explicit mode no-tx
 	)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "up function: transaction mode must be disabled or unspecified when RunDB is set")
-	err = SetGlobalMigrations(
+	err = SetGlobalMigrations("",
 		NewGoMigration(1, nil, &GoFunc{RunDB: runDB, Mode: TransactionEnabled}), // invalid explicit mode no-tx
 	)
 	require.Error(t, err)
@@ -91,10 +91,10 @@ func TestTransactionMode(t *testing.T) {
 		t.Cleanup(ResetGlobalMigrations)
 
 		m := NewGoMigration(1, nil, nil)
-		err = SetGlobalMigrations(m)
+		err = SetGlobalMigrations("", m)
 		require.NoError(t, err)
 		require.Len(t, registeredGoMigrations, 1)
-		registered := registeredGoMigrations[1]
+		registered := registeredGoMigrations[""][1]
 		require.NotNil(t, registered.goUp)
 		require.NotNil(t, registered.goDown)
 		require.Equal(t, TransactionEnabled, registered.goUp.Mode)
@@ -103,21 +103,21 @@ func TestTransactionMode(t *testing.T) {
 		migration2 := NewGoMigration(2, nil, nil)
 		// reset so we can check the default is set
 		migration2.goUp.Mode, migration2.goDown.Mode = 0, 0
-		err = SetGlobalMigrations(migration2)
+		err = SetGlobalMigrations("", migration2)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid go migration: up function: invalid mode: 0")
 
 		migration3 := NewGoMigration(3, nil, nil)
 		// reset so we can check the default is set
 		migration3.goDown.Mode = 0
-		err = SetGlobalMigrations(migration3)
+		err = SetGlobalMigrations("", migration3)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid go migration: down function: invalid mode: 0")
 	})
 	t.Run("unknown_mode", func(t *testing.T) {
 		m := NewGoMigration(1, nil, nil)
 		m.goUp.Mode, m.goDown.Mode = 3, 3 // reset to default
-		err := SetGlobalMigrations(m)
+		err := SetGlobalMigrations("", m)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid mode: 3")
 	})
@@ -141,12 +141,12 @@ func TestLegacyFunctions(t *testing.T) {
 
 	t.Run("all_tx", func(t *testing.T) {
 		t.Cleanup(ResetGlobalMigrations)
-		err := SetGlobalMigrations(
+		err := SetGlobalMigrations("",
 			NewGoMigration(1, &GoFunc{RunTx: runTx}, &GoFunc{RunTx: runTx}),
 		)
 		require.NoError(t, err)
 		require.Len(t, registeredGoMigrations, 1)
-		m := registeredGoMigrations[1]
+		m := registeredGoMigrations[""][1]
 		assertMigration(t, m, 1)
 		// Legacy functions.
 		require.Nil(t, m.UpFnNoTxContext)
@@ -164,12 +164,12 @@ func TestLegacyFunctions(t *testing.T) {
 	})
 	t.Run("all_db", func(t *testing.T) {
 		t.Cleanup(ResetGlobalMigrations)
-		err := SetGlobalMigrations(
+		err := SetGlobalMigrations("",
 			NewGoMigration(2, &GoFunc{RunDB: runDB}, &GoFunc{RunDB: runDB}),
 		)
 		require.NoError(t, err)
 		require.Len(t, registeredGoMigrations, 1)
-		m := registeredGoMigrations[2]
+		m := registeredGoMigrations[""][2]
 		assertMigration(t, m, 2)
 		// Legacy functions.
 		require.NotNil(t, m.UpFnNoTxContext)
@@ -194,19 +194,19 @@ func TestGlobalRegister(t *testing.T) {
 	runTx := func(context.Context, *sql.Tx) error { return nil }
 
 	// Success.
-	err := SetGlobalMigrations([]*Migration{}...)
+	err := SetGlobalMigrations("", []*Migration{}...)
 	require.NoError(t, err)
-	err = SetGlobalMigrations(
+	err = SetGlobalMigrations("",
 		NewGoMigration(1, &GoFunc{RunTx: runTx}, nil),
 	)
 	require.NoError(t, err)
 	// Try to register the same migration again.
-	err = SetGlobalMigrations(
+	err = SetGlobalMigrations("",
 		NewGoMigration(1, &GoFunc{RunTx: runTx}, nil),
 	)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "go migration with version 1 already registered")
-	err = SetGlobalMigrations(&Migration{Registered: true, Version: 2, Type: TypeGo})
+	err = SetGlobalMigrations("", &Migration{Registered: true, Version: 2, Type: TypeGo})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "must use NewGoMigration to construct migrations")
 }

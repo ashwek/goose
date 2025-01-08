@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	registeredGoMigrations = make(map[int64]*Migration)
+	registeredGoMigrations = make(map[string]map[int64]*Migration)
 )
 
 // ResetGlobalMigrations resets the global Go migrations registry.
 //
 // Not safe for concurrent use.
 func ResetGlobalMigrations() {
-	registeredGoMigrations = make(map[int64]*Migration)
+	registeredGoMigrations = make(map[string]map[int64]*Migration)
 }
 
 // SetGlobalMigrations registers Go migrations globally. It returns an error if a migration with the
@@ -22,15 +22,19 @@ func ResetGlobalMigrations() {
 // [NewGoMigration] function.
 //
 // Not safe for concurrent use.
-func SetGlobalMigrations(migrations ...*Migration) error {
+func SetGlobalMigrations(scope string, migrations ...*Migration) error {
+	if _, ok := registeredGoMigrations[scope]; !ok {
+		registeredGoMigrations[scope] = make(map[int64]*Migration)
+	}
+
 	for _, m := range migrations {
-		if _, ok := registeredGoMigrations[m.Version]; ok {
+		if _, ok := registeredGoMigrations[scope][m.Version]; ok {
 			return fmt.Errorf("go migration with version %d already registered", m.Version)
 		}
 		if err := checkGoMigration(m); err != nil {
 			return fmt.Errorf("invalid go migration: %w", err)
 		}
-		registeredGoMigrations[m.Version] = m
+		registeredGoMigrations[scope][m.Version] = m
 	}
 	return nil
 }

@@ -125,10 +125,11 @@ func (ms Migrations) String() string {
 }
 
 func collectMigrationsFS(
+	scope string,
 	fsys fs.FS,
 	dirpath string,
 	current, target int64,
-	registered map[int64]*Migration,
+	registered map[string]map[int64]*Migration,
 ) (Migrations, error) {
 	if _, err := fs.Stat(fsys, dirpath); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -157,7 +158,7 @@ func collectMigrationsFS(
 		}
 	}
 	// Go migration files.
-	goMigrations, err := collectGoMigrations(fsys, dirpath, registered, current, target)
+	goMigrations, err := collectGoMigrations(scope, fsys, dirpath, registered, current, target)
 	if err != nil {
 		return nil, err
 	}
@@ -170,8 +171,8 @@ func collectMigrationsFS(
 
 // CollectMigrations returns all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version.
-func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
-	return collectMigrationsFS(baseFS, dirpath, current, target, registeredGoMigrations)
+func CollectMigrations(scope, dirpath string, current, target int64) (Migrations, error) {
+	return collectMigrationsFS(scope, baseFS, dirpath, current, target, registeredGoMigrations)
 }
 
 func sortAndConnectMigrations(migrations Migrations) Migrations {
@@ -291,15 +292,18 @@ func GetDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 // error. This is to prevent users from accidentally adding valid looking Go files to the migrations
 // folder without registering them.
 func collectGoMigrations(
+	scope string,
 	fsys fs.FS,
 	dirpath string,
-	registeredGoMigrations map[int64]*Migration,
+	registeredGoMigrations map[string]map[int64]*Migration,
 	current, target int64,
 ) (Migrations, error) {
 	// Sanity check registered migrations have the correct version prefix.
-	for _, m := range registeredGoMigrations {
-		if _, err := NumericComponent(m.Source); err != nil {
-			return nil, fmt.Errorf("could not parse go migration file %s: %w", m.Source, err)
+	if versionMap, ok := registeredGoMigrations[scope]; ok {
+		for _, m := range versionMap {
+			if _, err := NumericComponent(m.Source); err != nil {
+				return nil, fmt.Errorf("could not parse go migration file %s: %w", m.Source, err)
+			}
 		}
 	}
 	goFiles, err := fs.Glob(fsys, path.Join(dirpath, "*.go"))
@@ -335,8 +339,12 @@ func collectGoMigrations(
 		migrations Migrations
 	)
 	if len(sources) > 0 {
+		if _, ok := registeredGoMigrations[scope]; !ok {
+			registeredGoMigrations[scope] = make(map[int64]*Migration)
+		}
+
 		for _, s := range sources {
-			migration, ok := registeredGoMigrations[s.version]
+			migration, ok := registeredGoMigrations[scope][s.version]
 			if ok {
 				migrations = append(migrations, migration)
 			} else {
@@ -359,13 +367,15 @@ func collectGoMigrations(
 		//
 		// This is a valid use case because users may want to build a custom binary that only embeds
 		// the SQL migration files and some other mechanism for registering Go migrations.
-		for _, migration := range registeredGoMigrations {
-			v, err := NumericComponent(migration.Source)
-			if err != nil {
-				return nil, fmt.Errorf("could not parse go migration file %s: %w", migration.Source, err)
-			}
-			if versionFilter(v, current, target) {
-				migrations = append(migrations, migration)
+		if versionMap, ok := registeredGoMigrations[scope]; ok {
+			for _, migration := range versionMap {
+				v, err := NumericComponent(migration.Source)
+				if err != nil {
+					return nil, fmt.Errorf("could not parse go migration file %s: %w", migration.Source, err)
+				}
+				if versionFilter(v, current, target) {
+					migrations = append(migrations, migration)
+				}
 			}
 		}
 	}
