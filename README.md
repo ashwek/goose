@@ -1,5 +1,13 @@
 # goose
 
+### Change:
+
+**TL;DR** Added support to specify ``scope`` so migrations with the same version in different directories dont conflict.
+
+By default, Goose registers all migrations globally, which can lead to version conflicts when using multiple migration directories. This form adds support to specify ``scope``, letting you separate migrations by scope. That way, even if 2 migrations share the same version number, they remain independent if they belong to different scopes.
+
+----
+
 <img align="right" width="125" src="assets/goose_logo.png">
 
 [![Goose
